@@ -34,6 +34,8 @@ public static class Importer
             
             // TODO: generate import summary
             GenerateSummary(details);
+
+            await context.Database.CommitTransactionAsync(cancellationToken);
         }
         catch (Exception)
         {
