@@ -6,7 +6,7 @@ namespace assessment.Importer;
 
 public static class Importer
 {
-    public static async Task ImportAsync(List<Invoice> invoices, List<InvoiceDetail> details, CancellationToken cancellationToken = default)
+    public static async Task ImportAsync(Context context, List<Invoice> invoices, List<InvoiceDetail> details, CancellationToken cancellationToken = default)
     {
         if (invoices.Count == 0)
         {
@@ -14,29 +14,14 @@ public static class Importer
            return; 
         }
         
-        await using var context = new Context();
         await context.Database.BeginTransactionAsync(cancellationToken);
         
         try
         {
-            // uncomment below line to drop DB (for testing purpose only)
-            //await context.Database.EnsureDeletedAsync(cancellationToken);
-            await context.Database.MigrateAsync(cancellationToken: cancellationToken);
-
-            // TODO: import invoice header
             await ImportInvoiceHeaders(context, invoices, cancellationToken);
-            
-            // TODO: import invoice details
             await ImportInvoiceDetails(context, details, cancellationToken);
             
-            // commit to db
             await context.Database.CommitTransactionAsync(cancellationToken);
-            
-            // TODO: validate imported data
-            ValidateImport(context);
-            
-            // TODO: generate import summary
-            GenerateSummary(details);
         }
         catch (Exception)
         {
@@ -47,16 +32,13 @@ public static class Importer
 
     private static async Task ImportInvoiceHeaders(Context context, List<Invoice> invoices, CancellationToken cancellationToken)
     {
-        //TODO: load invoices into memory to check for duplicates
         var existingInvoices = 
             context.Invoices.AsNoTracking().ToDictionary(z => z.Number);
             
-        //TODO: add new invoices
         foreach (var invoice in invoices.Where(invoice => !existingInvoices.ContainsKey(invoice.Number)))
             context.Invoices.AddRange(invoice);
 
         await context.SaveChangesAsync(cancellationToken);
-        
     }
 
     private static async Task ImportInvoiceDetails(Context context, List<InvoiceDetail> details,
@@ -87,21 +69,19 @@ public static class Importer
         await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static void ValidateImport(Context context)
+    public static void ValidateImport(Context context)
     {
+        //TODO: validate import
         var invoiceLineTotals = context.Lines.Sum(z => z.Quantity * z.UnitPrice) ?? 0;
         var invoiceTotals = context.Invoices.Sum(z => z.Total) ?? 0;
 
-        Console.WriteLine("\nData Validation:");
+        Console.WriteLine("Data Validation:");
         Console.WriteLine($"Sum of Invoices: {invoiceTotals:N2}");
         Console.WriteLine($"Sum of Invoice Lines: {invoiceLineTotals:N2}");
-
-        //NOTE: because of the doubles we have to compare perform some kind of comparison and allow 
-        // for tolerances (might not work but worth a try)
-        Console.WriteLine(Math.Abs(invoiceLineTotals - invoiceTotals) < 0.01 ? "Validation Success" : "Oops...");
+        Console.WriteLine();
     }
 
-    private static void GenerateSummary(List<InvoiceDetail> details)
+    public static void GenerateSummary(List<InvoiceDetail> details)
     {
         //TODO: summary
         var summary =
@@ -109,10 +89,10 @@ public static class Importer
                 .Select(group => new
                 {
                     InvoiceNumber = group.Key,
-                    TotalQuantity = group.Sum(line => line.Quantity)
+                    TotalQuantity = group.Count()
                 }).ToList();
 
-        Console.WriteLine("\nSummary:");
+        Console.WriteLine("Summary:");
         foreach (var s in summary)
             Console.WriteLine($"Invoice: {s.InvoiceNumber}, Total: {s.TotalQuantity} ");
     }

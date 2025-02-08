@@ -1,9 +1,11 @@
+using System.ComponentModel.DataAnnotations;
 using CsvHelper.Configuration.Attributes;
 
 namespace assessment.Database.Entities;
 
 public class InvoiceDetail
 {
+    [Key]
     [Name("LineId")]
     public long Id { get; set; }
     

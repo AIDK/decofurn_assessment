@@ -4,6 +4,7 @@ using CsvHelper.Configuration.Attributes;
 namespace assessment.Database.Entities;
 public class Invoice
 {
+    [Key]
     [Name("InvoiceId")]
     public long Id { get; set; }
     
