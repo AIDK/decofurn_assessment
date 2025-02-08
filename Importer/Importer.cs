@@ -29,13 +29,14 @@ public static class Importer
             // TODO: import invoice details
             await ImportInvoiceDetails(context, details, cancellationToken);
             
+            // commit to db
+            await context.Database.CommitTransactionAsync(cancellationToken);
+            
             // TODO: validate imported data
             ValidateImport(context);
             
             // TODO: generate import summary
             GenerateSummary(details);
-
-            await context.Database.CommitTransactionAsync(cancellationToken);
         }
         catch (Exception)
         {
